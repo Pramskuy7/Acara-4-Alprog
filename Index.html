@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BPS Kabupaten Kulon Progo 2023</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet CSS & JS untuk Peta Interaktif -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body {
+            background: linear-gradient(rgba(15, 76, 129, 0.45), rgba(15, 76, 129, 0.65)), 
+                        url('https://upload.wikimedia.org/wikipedia/commons/3/31/Kalibiru%2C_Bluriver.jpg') no-repeat center center fixed;
+            background-size: cover;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.88);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        #map { height: 380px; width: 100%; border-radius: 12px; z-index: 1; }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen pb-12">
+
+    <!-- Header / Navbar -->
+    <header class="p-4 mb-6">
+        <div class="max-w-6xl mx-auto glass-panel rounded-2xl px-6 py-4 flex items-center shadow-lg">
+            <div class="flex items-center space-x-3">
+                <div class="bg-blue-600 text-white font-bold px-3 py-1.5 rounded-xl text-xl shadow">BPS</div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight text-blue-900">Kulon Progo 2023</h1>
+                    <p class="text-xs text-blue-700 font-medium">Data Kependudukan & Luas Wilayah</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-6xl mx-auto px-4 space-y-6">
+
+        <!-- Stat Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="glass-panel p-4 rounded-2xl shadow-sm text-center">
+                <span class="text-xs font-semibold text-blue-800 uppercase tracking-wider">Total Penduduk</span>
+                <p class="text-2xl font-extrabold text-blue-900 mt-1">442.172</p>
+                <span class="text-xs text-blue-600">Jiwa (2023)</span>
+            </div>
+            <div class="glass-panel p-4 rounded-2xl shadow-sm text-center">
+                <span class="text-xs font-semibold text-blue-800 uppercase tracking-wider">Luas Wilayah</span>
+                <p class="text-2xl font-extrabold text-blue-900 mt-1">586,28</p>
+                <span class="text-xs text-blue-600">km² Total</span>
+            </div>
+            <div class="glass-panel p-4 rounded-2xl shadow-sm text-center">
+                <span class="text-xs font-semibold text-blue-800 uppercase tracking-wider">Rata-Rata Kepadatan</span>
+                <p class="text-2xl font-extrabold text-blue-900 mt-1">754</p>
+                <span class="text-xs text-blue-600">Jiwa / km²</span>
+            </div>
+            <div class="glass-panel p-4 rounded-2xl shadow-sm text-center">
+                <span class="text-xs font-semibold text-blue-800 uppercase tracking-wider">Wilayah Admin</span>
+                <p class="text-2xl font-extrabold text-blue-900 mt-1">12</p>
+                <span class="text-xs text-blue-600">Kecamatan</span>
+            </div>
+        </div>
+
+        <!-- Peta Interaktif Section -->
+        <div class="glass-panel p-5 rounded-2xl shadow-md">
+            <div class="flex justify-between items-center mb-3">
+                <h2 class="font-bold text-blue-900 text-lg flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+                    Peta Persebaran Kecamatan Kulon Progo
+                </h2>
+            </div>
+            <div id="map"></div>
+        </div>
+
+        <!-- Tabel Data & Search Section -->
+        <div class="glass-panel p-5 rounded-2xl shadow-md space-y-4">
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                <h2 class="font-bold text-blue-900 text-lg">Tabel Data Kependudukan 2023</h2>
+                <input type="text" id="searchInput" onkeyup="filterTable()" placeholder="Cari nama kecamatan..." 
+                       class="w-full sm:w-64 px-4 py-2 border border-blue-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/90 shadow-sm">
+            </div>
+
+            <div class="overflow-x-auto rounded-xl border border-blue-100">
+                <table class="w-full text-left text-sm" id="dataTable">
+                    <thead class="bg-blue-600 text-white">
+                        <tr>
+                            <th class="p-3 font-semibold cursor-pointer select-none" onclick="sortTable(0)">Kecamatan &#x21D5;</th>
+                            <th class="p-3 font-semibold text-right cursor-pointer select-none" onclick="sortTable(1)">Luas (km²) &#x21D5;</th>
+                            <th class="p-3 font-semibold text-right cursor-pointer select-none" onclick="sortTable(2)">Penduduk (Jiwa) &#x21D5;</th>
+                            <th class="p-3 font-semibold text-right cursor-pointer select-none" onclick="sortTable(3)">Kepadatan (Jiwa/km²) &#x21D5;</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-blue-100 bg-white/70" id="tableBody">
+                        <!-- Content populated by JS -->
+                    </tbody>
+                    <tfoot class="bg-blue-100 font-bold text-blue-950">
+                        <tr>
+                            <td class="p-3">Total / Rata-rata</td>
+                            <td class="p-3 text-right">586,28</td>
+                            <td class="p-3 text-right">442.172</td>
+                            <td class="p-3 text-right">754</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const data = [
+            { name: 'Temon', area: 36.60, pop: 28328, lat: -7.887, lng: 110.057 },
+            { name: 'Wates', area: 32.00, pop: 48710, lat: -7.858, lng: 110.158 },
+            { name: 'Panjatan', area: 44.59, pop: 38283, lat: -7.901, lng: 110.143 },
+            { name: 'Galur', area: 27.87, pop: 31320, lat: -7.943, lng: 110.222 },
+            { name: 'Lendah', area: 35.59, pop: 40231, lat: -7.892, lng: 110.231 },
+            { name: 'Sentolo', area: 52.89, pop: 49620, lat: -7.834, lng: 110.223 },
+            { name: 'Pengasih', area: 61.66, pop: 53050, lat: -7.828, lng: 110.148 },
+            { name: 'Kokap', area: 73.80, pop: 35210, lat: -7.817, lng: 110.082 },
+            { name: 'Girimulyo', area: 54.90, pop: 24110, lat: -7.747, lng: 110.122 },
+            { name: 'Nanggulan', area: 39.61, pop: 30220, lat: -7.766, lng: 110.208 },
+            { name: 'Kalibawang', area: 52.96, pop: 31830, lat: -7.695, lng: 110.238 },
+            { name: 'Samigaluh', area: 69.29, pop: 27280, lat: -7.669, lng: 110.158 }
+        ];
+
+        function renderTable(items) {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = items.map(d => {
+                const density = Math.round(d.pop / d.area);
+                return `<tr class="hover:bg-blue-50/80 transition">
+                    <td class="p-3 font-semibold text-blue-900">${d.name}</td>
+                    <td class="p-3 text-right">${d.area.toFixed(2)}</td>
+                    <td class="p-3 text-right">${d.pop.toLocaleString('id-ID')}</td>
+                    <td class="p-3 text-right font-medium text-blue-800">${density.toLocaleString('id-ID')}</td>
+                </tr>`;
+            }).join('');
+        }
+        renderTable(data);
+
+        const map = L.map('map').setView([-7.82, 110.15], 10);
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: 'Tiles &copy; Esri'
+        }).addTo(map);
+
+        data.forEach(d => {
+            const density = Math.round(d.pop / d.area);
+            L.marker([d.lat, d.lng]).addTo(map)
+                .bindPopup(`<b>Kecamatan ${d.name}</b><br>Luas: ${d.area} km²<br>Penduduk: ${d.pop.toLocaleString('id-ID')} jiwa<br>Kepadatan: ${density} jiwa/km²`);
+        });
+
+        function filterTable() {
+            const val = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = data.filter(d => d.name.toLowerCase().includes(val));
+            renderTable(filtered);
+        }
+
+        let sortAsc = true;
+        function sortTable(colIndex) {
+            sortAsc = !sortAsc;
+            data.sort((a, b) => {
+                let valA, valB;
+                if (colIndex === 0) { valA = a.name; valB = b.name; }
+                else if (colIndex === 1) { valA = a.area; valB = b.area; }
+                else if (colIndex === 2) { valA = a.pop; valB = b.pop; }
+                else { valA = a.pop / a.area; valB = b.pop / b.area; }
+
+                if (valA < valB) return sortAsc ? -1 : 1;
+                if (valA > valB) return sortAsc ? 1 : -1;
+                return 0;
+            });
+            renderTable(data);
+        }
+    </script>
+</body>
+</html>
